@@ -95,10 +95,7 @@ contract GOG is owned {
         require(_to != 0x0);
 
         // Check if the sender has enough
-        require(balances[_from] > frozenFunds[_from]);
-        require((balances[_from].sub(frozenFunds[_from])) >= _value);
-        // Check for overflows
-        require(balances[_to].add(_value) > balances[_to]);
+        require(balances[_from] >= _value);
         // Save this for an assertion in the future
         uint previousBalances = balances[_from].add(balances[_to]);
         // Subtract from the sender
