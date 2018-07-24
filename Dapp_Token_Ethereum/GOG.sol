@@ -1,6 +1,6 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.4.18;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./SafeMath.sol";
 
 contract owned {
     address public owner;
