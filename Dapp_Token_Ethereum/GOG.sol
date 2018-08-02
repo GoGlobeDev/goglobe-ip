@@ -1,10 +1,55 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
-import "./SafeMath.sol";
+
+/**
+ * @title SafeMath
+ * @dev Math operations with safety checks that throw on error
+ */
+library SafeMath {
+
+  /**
+  * @dev Multiplies two numbers, throws on overflow.
+  */
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    if (a == 0) {
+      return 0;
+    }
+    uint256 c = a * b;
+    assert(c / a == b);
+    return c;
+  }
+
+  /**
+  * @dev Integer division of two numbers, truncating the quotient.
+  */
+  function div(uint256 a, uint256 b) internal pure returns (uint256) {
+    // assert(b > 0); // Solidity automatically throws when dividing by 0
+    uint256 c = a / b;
+    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
+    return c;
+  }
+
+  /**
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  */
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
+    assert(b <= a);
+    return a - b;
+  }
+
+  /**
+  * @dev Adds two numbers, throws on overflow.
+  */
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    assert(c >= a);
+    return c;
+  }
+}
 
 contract owned {
     address public owner;
-    function owned() public {
+    constructor() public {
         owner = msg.sender;
     }
     modifier onlyOwner {
@@ -50,7 +95,7 @@ contract GOG is owned {
      * Constrctor function
      * Initializes contract with initial supply tokens to the creator of the contract
      */
-    Constrctor() public {
+    constructor() public {
         totalSupply = 10000000000000000;               // GOG's total supply is 10 billion with 6 decimals
         balances[msg.sender] = totalSupply;          // Give the creator all initial tokens
         name = "GoGlobe Token";                       // Token name is GoGlobe Token
@@ -61,7 +106,7 @@ contract GOG is owned {
      * get the balance of account
      * @param _owner The account address
      */
-    function balanceOf(address _owner) constant public returns (uint256) {
+    function balanceOf(address _owner) view public returns (uint256) {
         return balances[_owner];
     }
 
@@ -88,8 +133,8 @@ contract GOG is owned {
    * @param _addedValue The amount of tokens to increase the allowance by.
    */
   function increaseApproval(address _spender, uint _addedValue) public onlyUnpaused returns (bool) {
-    allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    allowance[msg.sender][_spender] = allowance[msg.sender][_spender].add(_addedValue);
+    emit Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
     return true;
   }
 
@@ -104,13 +149,13 @@ contract GOG is owned {
    * @param _subtractedValue The amount of tokens to decrease the allowance by.
    */
   function decreaseApproval(address _spender, uint _subtractedValue) public onlyUnpaused returns (bool) {
-    uint oldValue = allowed[msg.sender][_spender];
+    uint oldValue = allowance[msg.sender][_spender];
     if (_subtractedValue > oldValue) {
-      allowed[msg.sender][_spender] = 0;
+      allowance[msg.sender][_spender] = 0;
     } else {
-      allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
+      allowance[msg.sender][_spender] = oldValue.sub(_subtractedValue);
     }
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    emit Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
     return true;
   }
 
@@ -120,7 +165,7 @@ contract GOG is owned {
      * @param _spender address The address which will spend the funds.
      * @return A uint256 specifing the amount of tokens still avaible for the spender.
      */
-    function allowance(address _owner, address _spender) constant public returns (uint256) {
+    function allowance(address _owner, address _spender) view public returns (uint256) {
         return allowance[_owner][_spender];
     }
 
@@ -129,7 +174,7 @@ contract GOG is owned {
      */
     function _transfer(address _from, address _to, uint _value) internal {
         // Prevent transfer to 0x0 address. Use burn() instead
-        require(_to != 0x0);
+        require(_to != address(0));
 
         // Check if the sender has enough
         require(balances[_from] >= _value);
