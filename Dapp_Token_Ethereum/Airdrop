@@ -1,0 +1,174 @@
+pragma solidity ^0.4.24;
+
+import "./GOG.sol";
+
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
+contract Ownable {
+  address public owner;
+
+
+  event OwnershipRenounced(address indexed previousOwner);
+  event OwnershipTransferred(
+    address indexed previousOwner,
+    address indexed newOwner
+  );
+
+
+  /**
+   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+   * account.
+   */
+  constructor() public {
+    owner = msg.sender;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
+  }
+
+  /**
+   * @dev Allows the current owner to relinquish control of the contract.
+   * @notice Renouncing to ownership will leave the contract without an owner.
+   * It will not be possible to call the functions with the `onlyOwner`
+   * modifier anymore.
+   */
+  function renounceOwnership() public onlyOwner {
+    emit OwnershipRenounced(owner);
+    owner = address(0);
+  }
+
+  /**
+   * @dev Allows the current owner to transfer control of the contract to a newOwner.
+   * @param _newOwner The address to transfer ownership to.
+   */
+  function transferOwnership(address _newOwner) public onlyOwner {
+    _transferOwnership(_newOwner);
+  }
+
+  /**
+   * @dev Transfers control of the contract to a newOwner.
+   * @param _newOwner The address to transfer ownership to.
+   */
+  function _transferOwnership(address _newOwner) internal {
+    require(_newOwner != address(0));
+    emit OwnershipTransferred(owner, _newOwner);
+    owner = _newOwner;
+  }
+}
+
+
+contract AirDrop is Ownable{
+    using SafeMath for uint256;
+    address public baseAccount;
+    mapping(address => bool) public addressTrust;
+    GOG public token;
+    
+    event ChangeAddressAdd(address indexed _changeFrom, address indexed _changedAddress, bool _changeResult);
+
+    event ChangeAddressDelete(address indexed _changeFrom, address indexed _changeAddress, bool _changeResult);
+
+    event AirDropResult(address indexed _account, address indexed _transFrom, address[] _transTo, uint256 _amount);
+
+    event ChangeContractAddress(address indexed _from, address indexed _to);
+    
+    event ChangeBaseAccount(address indexed _from, address indexed _to);
+
+    constructor() public {
+        addressTrust[msg.sender] = true;
+        baseAccount = msg.sender;
+    }
+
+    /**
+    * @dev Throws if called by account not trusted
+    */
+    modifier accountTrust() {
+        require(addressTrust[msg.sender]);
+        _;
+    }
+    
+    /**
+    * @dev transfer token for a list of address from baseAccount by addressTrust
+    * @param _transTo The address to transfer to
+    * @param _amount the amount of each address to be transferred
+    */
+    function airDropToUser(address[] _transTo, uint256 _amount) public accountTrust returns (bool) {
+        uint256 totalTrans = uint256(_transTo.length).mul(_amount);
+        require(totalTrans <= token.allowance(baseAccount,address(this)));
+        for (uint i =0; i < _transTo.length; i++) {
+             require(token.transferFrom(baseAccount,_transTo[i],_amount));
+         }
+         emit AirDropResult(baseAccount,msg.sender,_transTo,_amount);
+        return true;
+    } 
+    
+    /**
+    * @dev add an address to addressTrust
+    * @param _newAccount the address to add 
+    */
+    function addAccount(address _newAccount) public onlyOwner returns (bool) {
+        addressTrust[_newAccount] = true;
+        emit ChangeAddressAdd(msg.sender, _newAccount, addressTrust[_newAccount]);
+        return addressTrust[_newAccount];
+    }
+    
+    /**
+    * @dev delete an address from addressTrust
+    * @param _deleteAccount the address to delete
+    */
+    function deleteAccount(address _deleteAccount) public onlyOwner returns (bool) {
+        addressTrust[_deleteAccount] = false;
+        emit ChangeAddressDelete(msg.sender, _deleteAccount, addressTrust[_deleteAccount]);
+        return !addressTrust[_deleteAccount];
+    }
+    
+    /**
+    * @dev update address of the token contract
+    * @param _newContractAddress the address of the new token
+    */
+    function updateContractAddress(address _newContractAddress) public onlyOwner returns (bool) {
+        emit ChangeContractAddress(address(token), _newContractAddress);
+        token = GOG(_newContractAddress);
+        return true;
+    }
+
+    /**
+    * @dev update the address of baseAccount who can transfer token 
+    * @param _newBaseAccount the new address of baseAccount 
+    */
+    function updateBaseAccount(address _newBaseAccount) public onlyOwner returns (bool) {
+        emit ChangeBaseAccount(baseAccount,_newBaseAccount);
+        baseAccount = _newBaseAccount;
+        return true;
+    }
+
+    /**
+    * @dev get the address of baseAccount
+    */
+    function baseAccount() public view returns (address) {
+        return baseAccount;
+    }
+
+    /**
+    * @dev get the address of the token contarct 
+    */
+    function contractAddress() public view returns (address) {
+        return address(token);
+    }
+
+    /**
+    * @dev check whether the address is trusted
+    * @param _userAddress the address need to be checked
+    */
+    function checkAddressTrust(address _userAddress) public view returns (bool) {
+        return addressTrust[_userAddress];
+    }
+
+}
